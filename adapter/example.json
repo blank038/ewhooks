@@ -1,0 +1,14 @@
+{
+  "to": "https://webhook.site/your-webhook-id",
+  "method": "POST",
+  "headers": {
+    "Authorization": "Bearer {{env.TOKEN}}",
+    "X-Custom-Header": "{{query.custom}}"
+  },
+  "body": {
+    "forwarded_message": "{{body.message}}",
+    "user_name": "{{body.user.name}}",
+    "from_header": "{{headers.X-Original-Header}}",
+    "timestamp": "{{body.timestamp}}"
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "name": "ewhooks",
+  "version": "1.0.0",
+  "description": "A WebHooks adapter.",
+  "type": "module",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node src/server.js"
+  },
+  "repository": "https://github.com/blank038/ewhooks",
+  "author": "blank038",
+  "license": "MIT",
+  "dependencies": {
+    "axios": "^1.13.2",
+    "chalk": "^5.6.2",
+    "dotenv": "^17.2.3",
+    "express": "^5.2.1",
+    "http-server": "^14.1.1"
+  }
+}
