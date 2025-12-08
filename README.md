@@ -1,6 +1,6 @@
-# ewhooks - WebHook 转接器系统
+# ewhooks
 
-WebHook 是一个轻便的转接器系统，支持动态路由、变量替换和数据映射。
+ewhooks 是一个轻便的 WebHook 转接器系统，支持动态路由、变量替换和数据映射。
 
 ## 功能特性
 
