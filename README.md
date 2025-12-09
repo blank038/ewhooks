@@ -5,7 +5,7 @@ ewhooks 是一个轻便的 WebHook 转接器系统，支持动态路由、变量
 ## 功能特性
 
 - 🚀 **动态路由**: 通过 URL 路径动态选择配置文件
-- 🔄 **灵活转发**: 支持所有 HTTP 方法 (GET/POST/PUT/DELETE 等)
+- 🔄 **灵活转发**: 支持 HTTP GET 和 HTTP POST 方法
 - 📝 **变量替换**: 从请求体、请求头、查询参数和环境变量中提取数据
 - 🔐 **安全防护**: 禁止直接访问配置文件
 - ⚡ **数据映射**: 灵活的请求体转换和重组
@@ -232,21 +232,6 @@ GET /health
 - 🔒 敏感信息(Token、API Key)应存储在环境变量中
 - 📝 所有请求和转发操作都会记录日志
 
-## 项目结构
-
-```
-ewhooks/
-├── adapter/              # 配置文件目录
-│   └── example.json      # 示例配置
-├── src/                  # 源代码目录
-│   ├── server.js         # 主服务器
-│   ├── forwarder.js      # 转发逻辑
-│   └── variableResolver.js  # 变量解析器
-├── .env.example          # 环境变量示例
-├── package.json          # 项目配置
-└── README.md             # 使用文档
-```
-
 ## 常见问题
 
 ### 如何调试配置?
@@ -263,7 +248,7 @@ ewhooks/
 
 ### 支持哪些 HTTP 方法?
 
-支持所有标准 HTTP 方法: GET, POST, PUT, DELETE, PATCH, HEAD, OPTIONS 等。
+支持 HTTP GET, HTTP POST 标准
 
 ## 许可证
 
