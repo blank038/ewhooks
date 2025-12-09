@@ -119,6 +119,14 @@ class Logger {
     this.log("ERROR", message, data);
   }
 
+  logInfo(message, data = null) {
+    this.info(message, data);
+  }
+
+  logError(message, data = null) {
+    this.error(message, data);
+  }
+
   logRequest(method, path, adapterName, body = null, headers = null) {
     const requestInfo = `${this.colorize(method, "cyan")} ${this.colorize(path, "green")}`;
     this.info(requestInfo);

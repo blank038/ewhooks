@@ -1,0 +1,64 @@
+{
+  "description": "旧格式路由配置示例（向后兼容）",
+  "comment": "使用 routeField + match 实现单字段匹配",
+  
+  "routeField": "body.type",
+  "routes": [
+    {
+      "comment": "精确匹配字符串",
+      "match": "error",
+      "to": "https://webhook.site/error-webhook-id",
+      "method": "POST",
+      "headers": {
+        "Authorization": "Bearer {{env.ERROR_TOKEN}}",
+        "Content-Type": "application/json; charset=UTF-8",
+        "X-Alert-Type": "error"
+      },
+      "body": {
+        "level": "error",
+        "message": "{{body.message}}",
+        "user": "{{body.user.name}}",
+        "timestamp": "{{body.timestamp}}"
+      }
+    },
+    {
+      "comment": "使用正则表达式字符串格式",
+      "match": "/^warning/i",
+      "to": "https://webhook.site/warning-webhook-id",
+      "method": "POST",
+      "headers": {
+        "Authorization": "Bearer {{env.WARNING_TOKEN}}",
+        "Content-Type": "application/json; charset=UTF-8"
+      },
+      "body": {
+        "level": "warning",
+        "content": "{{body.message}}"
+      }
+    },
+    {
+      "comment": "使用正则表达式对象格式",
+      "match": {"regex": "info|debug", "flags": "i"},
+      "to": "https://webhook.site/info-webhook-id",
+      "method": "POST",
+      "headers": {
+        "Authorization": "Bearer {{env.INFO_TOKEN}}",
+        "Content-Type": "application/json; charset=UTF-8"
+      }
+    }
+  ],
+  "default": {
+    "to": "https://webhook.site/default-webhook-id",
+    "method": "POST",
+    "headers": {
+      "Authorization": "Bearer {{env.DEFAULT_TOKEN}}",
+      "Content-Type": "application/json; charset=UTF-8"
+    },
+    "body": {
+      "forwarded_data": "{{body}}"
+    }
+  },
+  "method": "POST",
+  "headers": {
+    "User-Agent": "ewhooks/1.0.0"
+  }
+}

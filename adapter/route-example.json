@@ -1,40 +1,65 @@
 {
-  "routeField": "body.type",
+  "description": "路由配置示例 - 支持两种格式",
+  "comment1": "新格式：使用 conditions 数组 + operator 实现多条件匹配",
+  "comment2": "旧格式：使用 routeField + match 实现单字段匹配（向后兼容）",
+  
   "routes": [
     {
-      "match": "error",
-      "to": "https://webhook.site/error-webhook-id",
+      "comment": "示例1：AND 逻辑 - 所有条件都必须满足",
+      "conditions": [
+        {"field": "body.type", "match": "error"},
+        {"field": "body.level", "match": "critical"}
+      ],
+      "operator": "AND",
+      "to": "https://webhook.site/urgent-webhook-id",
       "method": "POST",
       "headers": {
-        "Authorization": "Bearer {{env.ERROR_TOKEN}}",
+        "Authorization": "Bearer {{env.URGENT_TOKEN}}",
         "Content-Type": "application/json; charset=UTF-8",
-        "X-Alert-Type": "error"
+        "X-Alert-Type": "urgent"
       },
       "body": {
-        "level": "error",
+        "severity": "urgent",
         "message": "{{body.message}}",
         "user": "{{body.user.name}}",
         "timestamp": "{{body.timestamp}}"
       }
     },
     {
-      "match": "warning",
-      "to": "https://webhook.site/warning-webhook-id",
+      "comment": "示例2：OR 逻辑 - 满足任一条件即可，支持正则表达式",
+      "conditions": [
+        {"field": "body.type", "match": "error"},
+        {"field": "body.severity", "match": "/high|critical/"}
+      ],
+      "operator": "OR",
+      "to": "https://webhook.site/alert-webhook-id",
       "method": "POST",
       "headers": {
-        "Authorization": "Bearer {{env.WARNING_TOKEN}}",
+        "Authorization": "Bearer {{env.ALERT_TOKEN}}",
         "Content-Type": "application/json; charset=UTF-8"
       },
       "body": {
-        "level": "warning",
+        "level": "alert",
         "content": "{{body.message}}"
       }
     },
     {
-      "match": "info",
-      "to": "https://webhook.site/info-webhook-id"
+      "comment": "示例3：复杂的 OR 条件 - 使用正则表达式对象格式",
+      "conditions": [
+        {"field": "body.status", "match": {"regex": "info|debug", "flags": "i"}},
+        {"field": "body.level", "match": "low"}
+      ],
+      "operator": "OR",
+      "to": "https://webhook.site/info-webhook-id",
+      "method": "POST",
+      "headers": {
+        "Authorization": "Bearer {{env.INFO_TOKEN}}",
+        "Content-Type": "application/json; charset=UTF-8"
+      }
     }
   ],
+  
+  "comment3": "默认路由：当所有条件都不匹配时使用",
   "default": {
     "to": "https://webhook.site/default-webhook-id",
     "method": "POST",
@@ -46,6 +71,7 @@
       "forwarded_data": "{{body}}"
     }
   },
+  
   "method": "POST",
   "headers": {
     "User-Agent": "ewhooks/1.0.0"
