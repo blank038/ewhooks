@@ -3,7 +3,9 @@
   "method": "POST",
   "headers": {
     "Authorization": "Bearer {{env.TOKEN}}",
-    "X-Custom-Header": "{{query.custom}}"
+    "X-Custom-Header": "{{query.custom}}",
+    "Content-Type": "application/json; charset=UTF-8",
+    "User-Agent": "ewhooks/1.0.0"
   },
   "body": {
     "forwarded_message": "{{body.message}}",
