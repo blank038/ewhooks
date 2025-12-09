@@ -33,12 +33,57 @@ async function loadConfig(adapterName) {
   }
 }
 
-export async function forwardWebhook(adapterName, req) {
-  const config = await loadConfig(adapterName);
-
-  if (!config.to) {
-    throw new Error("CONFIG_MISSING_TO");
+function selectTarget(config, context) {
+  if (!config.routes) {
+    if (!config.to) {
+      throw new Error("CONFIG_MISSING_TO");
+    }
+    return {
+      to: config.to,
+      method: config.method,
+      headers: config.headers,
+      body: config.body,
+    };
   }
+
+  const routeField = config.routeField;
+  if (!routeField) {
+    throw new Error("CONFIG_MISSING_ROUTE_FIELD");
+  }
+
+  const fieldValue = resolveAllVariables(`{{${routeField}}}`, context);
+
+  for (const route of config.routes) {
+    if (route.match === fieldValue) {
+      return {
+        to: route.to,
+        method: route.method || config.method,
+        headers: route.headers || config.headers,
+        body: route.body || config.body,
+      };
+    }
+  }
+
+  if (config.default) {
+    return {
+      to: config.default.to,
+      method: config.default.method || config.method,
+      headers: config.default.headers || config.headers,
+      body: config.default.body || config.body,
+    };
+  }
+
+  throw new Error("NO_MATCHING_ROUTE");
+}
+
+function generateRequestId() {
+  return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+}
+
+export async function forwardWebhook(adapterName, req) {
+  const requestId = generateRequestId();
+
+  const config = await loadConfig(adapterName);
 
   const context = {
     body: req.body || {},
@@ -47,18 +92,20 @@ export async function forwardWebhook(adapterName, req) {
     env: process.env,
   };
 
-  const method = config.method || req.method;
-  const headers = config.headers
-    ? resolveAllVariables(config.headers, context)
+  const target = selectTarget(config, context);
+
+  const method = target.method || req.method;
+  const headers = target.headers
+    ? resolveAllVariables(target.headers, context)
     : {};
-  const body = config.body
-    ? resolveAllVariables(config.body, context)
+  const body = target.body
+    ? resolveAllVariables(target.body, context)
     : req.body;
 
   try {
     const response = await axios({
       method,
-      url: config.to,
+      url: target.to,
       headers: {
         "Content-Type": "application/json",
         ...headers,
@@ -70,40 +117,41 @@ export async function forwardWebhook(adapterName, req) {
       proxy: false,
     });
 
-    logger.logForwardSuccess(adapterName, config.to, response.status, body);
+    logger.logForwardSuccess(adapterName, target.to, response.status, body, requestId);
 
     return {
       status: response.status,
       data: response.data,
     };
   } catch (error) {
-    logger.logForwardError(adapterName, config.to, error, body);
-    
+    logger.logForwardError(adapterName, target.to, error, body, requestId);
+
     if (error.response) {
       let responseData = error.response.data;
-      
-      if (typeof responseData === 'string' || !responseData) {
+
+      if (typeof responseData === "string" || !responseData) {
         responseData = {
-          error: 'Forwarding failed',
+          error: "Forwarding failed",
           statusCode: error.response.status,
-          message: typeof error.response.data === 'string' 
-            ? error.response.data.substring(0, 200)
-            : error.message
+          message:
+            typeof error.response.data === "string"
+              ? error.response.data.substring(0, 200)
+              : error.message,
         };
       }
-      
+
       return {
         status: error.response.status,
-        data: responseData
+        data: responseData,
       };
     }
-    
+
     return {
       status: 502,
-      data: { 
-        error: 'Failed to forward webhook',
-        message: error.message 
-      }
+      data: {
+        error: "Failed to forward webhook",
+        message: error.message,
+      },
     };
   }
 }

@@ -1,5 +1,11 @@
 import dotenv from "dotenv";
-dotenv.config();
+import path from "path";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+dotenv.config({ path: path.join(__dirname, "..", ".env") });
 
 import express from "express";
 import { forwardWebhook } from "./forwarder.js";
@@ -22,7 +28,8 @@ app.use("/adapter/:name", (req, res, next) => {
   next();
 });
 
-app.all("/adapter/:name", async (req, res) => {
+// 通用 webhook 处理函数
+const handleWebhookRequest = async (req, res) => {
   const adapterName = req.params.name;
 
   logger.logRequest(
@@ -62,6 +69,22 @@ app.all("/adapter/:name", async (req, res) => {
       });
     }
 
+    if (error.message === "CONFIG_MISSING_ROUTE_FIELD") {
+      logger.logConfigError(adapterName, "配置缺少 routeField 字段");
+      return res.status(500).json({
+        error: "Internal Server Error",
+        message: "Adapter configuration missing required field: routeField",
+      });
+    }
+
+    if (error.message === "NO_MATCHING_ROUTE") {
+      logger.logConfigError(adapterName, "未找到匹配的路由且无默认路由");
+      return res.status(400).json({
+        error: "Bad Request",
+        message: "No matching route found and no default route configured",
+      });
+    }
+
     logger.error(`转发失败: ${adapterName}`, { error: error.message });
     res.status(502).json({
       error: "Bad Gateway",
@@ -69,6 +92,22 @@ app.all("/adapter/:name", async (req, res) => {
       details: error.message,
     });
   }
+};
+
+// GET 请求处理
+app.get("/adapter/:name", handleWebhookRequest);
+
+// POST 请求处理
+app.post("/adapter/:name", handleWebhookRequest);
+
+// 拒绝其他 HTTP 方法
+app.all("/adapter/:name", (req, res) => {
+  logger.warn(`不支持的 HTTP 方法: ${req.method} /adapter/${req.params.name}`);
+  res.status(405).json({
+    error: "Method Not Allowed",
+    message: `HTTP method ${req.method} is not supported for this endpoint. Only GET and POST are allowed.`,
+    allowedMethods: ["GET", "POST"],
+  });
 });
 
 app.get("/health", (req, res) => {

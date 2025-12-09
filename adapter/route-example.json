@@ -1,0 +1,53 @@
+{
+  "routeField": "body.type",
+  "routes": [
+    {
+      "match": "error",
+      "to": "https://webhook.site/error-webhook-id",
+      "method": "POST",
+      "headers": {
+        "Authorization": "Bearer {{env.ERROR_TOKEN}}",
+        "Content-Type": "application/json; charset=UTF-8",
+        "X-Alert-Type": "error"
+      },
+      "body": {
+        "level": "error",
+        "message": "{{body.message}}",
+        "user": "{{body.user.name}}",
+        "timestamp": "{{body.timestamp}}"
+      }
+    },
+    {
+      "match": "warning",
+      "to": "https://webhook.site/warning-webhook-id",
+      "method": "POST",
+      "headers": {
+        "Authorization": "Bearer {{env.WARNING_TOKEN}}",
+        "Content-Type": "application/json; charset=UTF-8"
+      },
+      "body": {
+        "level": "warning",
+        "content": "{{body.message}}"
+      }
+    },
+    {
+      "match": "info",
+      "to": "https://webhook.site/info-webhook-id"
+    }
+  ],
+  "default": {
+    "to": "https://webhook.site/default-webhook-id",
+    "method": "POST",
+    "headers": {
+      "Authorization": "Bearer {{env.DEFAULT_TOKEN}}",
+      "Content-Type": "application/json; charset=UTF-8"
+    },
+    "body": {
+      "forwarded_data": "{{body}}"
+    }
+  },
+  "method": "POST",
+  "headers": {
+    "User-Agent": "ewhooks/1.0.0"
+  }
+}

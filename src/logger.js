@@ -18,13 +18,21 @@ const LOG_LEVELS = {
 
 class Logger {
   constructor() {
+    this.initialized = false;
+  }
+
+  init() {
+    if (this.initialized) return;
+    
     this.logLevel = this.parseLogLevel(process.env.LOG_LEVEL || "INFO");
-    this.bodyLogAdapters = this.parseBodyLogAdapters(
+    this.bodyLogAdapters = this.parseAdapterList(
       process.env.BODY_LOG_ADAPTERS || "",
     );
-    this.forwardLogAdapters = this.parseBodyLogAdapters(
+    this.forwardLogAdapters = this.parseAdapterList(
       process.env.FORWARD_LOG_ADAPTERS || "",
     );
+    
+    this.initialized = true;
   }
 
   parseLogLevel(level) {
@@ -34,7 +42,7 @@ class Logger {
       : LOG_LEVELS.INFO;
   }
 
-  parseBodyLogAdapters(adapters) {
+  parseAdapterList(adapters) {
     if (!adapters || adapters.trim() === "") {
       return null;
     }
@@ -45,17 +53,15 @@ class Logger {
   }
 
   shouldLogBody(adapterName) {
-    if (this.bodyLogAdapters === null) {
-      return true;
-    }
-    return this.bodyLogAdapters.includes(adapterName);
+    if (!this.initialized) this.init();
+    
+    return this.bodyLogAdapters === null || this.bodyLogAdapters.includes(adapterName);
   }
 
   shouldLogForward(adapterName) {
-    if (this.forwardLogAdapters === null) {
-      return true;
-    }
-    return this.forwardLogAdapters.includes(adapterName);
+    if (!this.initialized) this.init();
+    
+    return this.forwardLogAdapters === null || this.forwardLogAdapters.includes(adapterName);
   }
 
   formatTimestamp() {
@@ -67,6 +73,8 @@ class Logger {
   }
 
   log(level, message, data = null) {
+    if (!this.initialized) this.init();
+    
     if (LOG_LEVELS[level] < this.logLevel) {
       return;
     }
@@ -125,24 +133,26 @@ class Logger {
     }
   }
 
-  logForwardSuccess(adapterName, targetUrl, statusCode, forwardedBody = null) {
+  logForwardSuccess(adapterName, targetUrl, statusCode, forwardedBody = null, requestId = null) {
+    const requestIdStr = requestId ? `[${this.colorize(requestId, "cyan")}] ` : "";
     this.info(
-      `转发成功: ${this.colorize(adapterName, "magenta")} -> ${this.colorize(targetUrl, "green")} [${this.colorize(statusCode, "green")}]`,
+      `${requestIdStr}转发成功: ${this.colorize(adapterName, "magenta")} -> ${this.colorize(targetUrl, "green")} [${this.colorize(statusCode, "green")}]`,
     );
-    
+
     if (this.shouldLogForward(adapterName) && forwardedBody) {
-      this.info(`转发载体 (${adapterName}):`, forwardedBody);
+      this.info(`${requestIdStr}转发载体 (${adapterName}):`, forwardedBody);
     }
   }
 
-  logForwardError(adapterName, targetUrl, error, forwardedBody = null) {
+  logForwardError(adapterName, targetUrl, error, forwardedBody = null, requestId = null) {
+    const requestIdStr = requestId ? `[${this.colorize(requestId, "cyan")}] ` : "";
     this.error(
-      `转发失败: ${this.colorize(adapterName, "magenta")} -> ${this.colorize(targetUrl, "red")}`,
+      `${requestIdStr}转发失败: ${this.colorize(adapterName, "magenta")} -> ${this.colorize(targetUrl, "red")}`,
       { error: error.message },
     );
-    
+
     if (this.shouldLogForward(adapterName) && forwardedBody) {
-      this.error(`转发载体 (${adapterName}):`, forwardedBody);
+      this.error(`${requestIdStr}转发载体 (${adapterName}):`, forwardedBody);
     }
   }
 
@@ -153,4 +163,5 @@ class Logger {
   }
 }
 
-export default new Logger();
+const logger = new Logger();
+export default logger;
