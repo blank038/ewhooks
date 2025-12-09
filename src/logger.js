@@ -1,27 +1,47 @@
-import chalk from 'chalk';
+const colors = {
+  reset: "\x1b[0m",
+  gray: "\x1b[90m",
+  blue: "\x1b[34m",
+  yellow: "\x1b[33m",
+  red: "\x1b[31m",
+  cyan: "\x1b[36m",
+  green: "\x1b[32m",
+  magenta: "\x1b[35m",
+  bold: "\x1b[1m",
+};
 
 const LOG_LEVELS = {
   INFO: 0,
   WARN: 1,
-  ERROR: 2
+  ERROR: 2,
 };
 
 class Logger {
   constructor() {
-    this.logLevel = this.parseLogLevel(process.env.LOG_LEVEL || 'INFO');
-    this.bodyLogAdapters = this.parseBodyLogAdapters(process.env.BODY_LOG_ADAPTERS || '');
+    this.logLevel = this.parseLogLevel(process.env.LOG_LEVEL || "INFO");
+    this.bodyLogAdapters = this.parseBodyLogAdapters(
+      process.env.BODY_LOG_ADAPTERS || "",
+    );
+    this.forwardLogAdapters = this.parseBodyLogAdapters(
+      process.env.FORWARD_LOG_ADAPTERS || "",
+    );
   }
 
   parseLogLevel(level) {
     const upperLevel = level.toUpperCase();
-    return LOG_LEVELS[upperLevel] !== undefined ? LOG_LEVELS[upperLevel] : LOG_LEVELS.INFO;
+    return LOG_LEVELS[upperLevel] !== undefined
+      ? LOG_LEVELS[upperLevel]
+      : LOG_LEVELS.INFO;
   }
 
   parseBodyLogAdapters(adapters) {
-    if (!adapters || adapters.trim() === '') {
+    if (!adapters || adapters.trim() === "") {
       return null;
     }
-    return adapters.split(',').map(a => a.trim()).filter(a => a);
+    return adapters
+      .split(",")
+      .map((a) => a.trim())
+      .filter((a) => a);
   }
 
   shouldLogBody(adapterName) {
@@ -31,8 +51,19 @@ class Logger {
     return this.bodyLogAdapters.includes(adapterName);
   }
 
+  shouldLogForward(adapterName) {
+    if (this.forwardLogAdapters === null) {
+      return true;
+    }
+    return this.forwardLogAdapters.includes(adapterName);
+  }
+
   formatTimestamp() {
     return new Date().toISOString();
+  }
+
+  colorize(text, color) {
+    return `${colors[color]}${text}${colors.reset}`;
   }
 
   log(level, message, data = null) {
@@ -42,70 +73,83 @@ class Logger {
 
     const timestamp = this.formatTimestamp();
     let coloredLevel;
-    
+
     switch (level) {
-      case 'INFO':
-        coloredLevel = chalk.blue.bold('[INFO]');
+      case "INFO":
+        coloredLevel =
+          this.colorize("[INFO]", "blue") + this.colorize("", "bold");
         break;
-      case 'WARN':
-        coloredLevel = chalk.yellow.bold('[WARN]');
+      case "WARN":
+        coloredLevel =
+          this.colorize("[WARN]", "yellow") + this.colorize("", "bold");
         break;
-      case 'ERROR':
-        coloredLevel = chalk.red.bold('[ERROR]');
+      case "ERROR":
+        coloredLevel =
+          this.colorize("[ERROR]", "red") + this.colorize("", "bold");
         break;
       default:
-        coloredLevel = chalk.white.bold(`[${level}]`);
+        coloredLevel = `[${level}]`;
     }
 
-    const logMessage = `${chalk.gray(timestamp)} ${coloredLevel} ${message}`;
+    const logMessage = `${this.colorize(timestamp, "gray")} ${coloredLevel} ${message}`;
     console.log(logMessage);
 
     if (data) {
-      console.log(chalk.gray(JSON.stringify(data, null, 2)));
+      console.log(this.colorize(JSON.stringify(data, null, 2), "gray"));
     }
   }
 
   info(message, data = null) {
-    this.log('INFO', message, data);
+    this.log("INFO", message, data);
   }
 
   warn(message, data = null) {
-    this.log('WARN', message, data);
+    this.log("WARN", message, data);
   }
 
   error(message, data = null) {
-    this.log('ERROR', message, data);
+    this.log("ERROR", message, data);
   }
 
   logRequest(method, path, adapterName, body = null, headers = null) {
-    const requestInfo = `${chalk.cyan(method)} ${chalk.green(path)}`;
+    const requestInfo = `${this.colorize(method, "cyan")} ${this.colorize(path, "green")}`;
     this.info(requestInfo);
 
     if (this.shouldLogBody(adapterName)) {
       if (body && Object.keys(body).length > 0) {
         this.info(`请求载体 (${adapterName}):`, body);
       }
-      if (headers && process.env.LOG_HEADERS === 'true') {
+      if (headers && process.env.LOG_HEADERS === "true") {
         this.info(`请求头 (${adapterName}):`, headers);
       }
     }
   }
 
-  logForwardSuccess(adapterName, targetUrl, statusCode) {
+  logForwardSuccess(adapterName, targetUrl, statusCode, forwardedBody = null) {
     this.info(
-      `转发成功: ${chalk.magenta(adapterName)} -> ${chalk.green(targetUrl)} [${chalk.green(statusCode)}]`
+      `转发成功: ${this.colorize(adapterName, "magenta")} -> ${this.colorize(targetUrl, "green")} [${this.colorize(statusCode, "green")}]`,
     );
+    
+    if (this.shouldLogForward(adapterName) && forwardedBody) {
+      this.info(`转发载体 (${adapterName}):`, forwardedBody);
+    }
   }
 
-  logForwardError(adapterName, targetUrl, error) {
+  logForwardError(adapterName, targetUrl, error, forwardedBody = null) {
     this.error(
-      `转发失败: ${chalk.magenta(adapterName)} -> ${chalk.red(targetUrl)}`,
-      { error: error.message }
+      `转发失败: ${this.colorize(adapterName, "magenta")} -> ${this.colorize(targetUrl, "red")}`,
+      { error: error.message },
     );
+    
+    if (this.shouldLogForward(adapterName) && forwardedBody) {
+      this.error(`转发载体 (${adapterName}):`, forwardedBody);
+    }
   }
 
   logConfigError(adapterName, errorType) {
-    this.error(`配置错误: ${chalk.magenta(adapterName)} - ${errorType}`);
+    this.error(
+      `配置错误: ${this.colorize(adapterName, "magenta")} - ${errorType}`,
+    );
   }
 }
 
