@@ -5,6 +5,7 @@
   "routeField": "body.type",
   "routes": [
     {
+      "name": "错误告警",
       "comment": "精确匹配字符串",
       "match": "error",
       "to": "https://webhook.site/error-webhook-id",
@@ -22,6 +23,7 @@
       }
     },
     {
+      "name": "警告通知",
       "comment": "使用正则表达式字符串格式",
       "match": "/^warning/i",
       "to": "https://webhook.site/warning-webhook-id",
@@ -36,6 +38,7 @@
       }
     },
     {
+      "name": "信息日志",
       "comment": "使用正则表达式对象格式",
       "match": {"regex": "info|debug", "flags": "i"},
       "to": "https://webhook.site/info-webhook-id",
@@ -47,6 +50,7 @@
     }
   ],
   "default": {
+    "name": "默认路由",
     "to": "https://webhook.site/default-webhook-id",
     "method": "POST",
     "headers": {

@@ -5,6 +5,7 @@
   
   "routes": [
     {
+      "name": "紧急告警",
       "comment": "示例1：AND 逻辑 - 所有条件都必须满足",
       "conditions": [
         {"field": "body.type", "match": "error"},
@@ -26,6 +27,7 @@
       }
     },
     {
+      "name": "普通告警",
       "comment": "示例2：OR 逻辑 - 满足任一条件即可，支持正则表达式",
       "conditions": [
         {"field": "body.type", "match": "error"},
@@ -44,6 +46,7 @@
       }
     },
     {
+      "name": "信息通知",
       "comment": "示例3：复杂的 OR 条件 - 使用正则表达式对象格式",
       "conditions": [
         {"field": "body.status", "match": {"regex": "info|debug", "flags": "i"}},
@@ -61,6 +64,7 @@
   
   "comment3": "默认路由：当所有条件都不匹配时使用",
   "default": {
+    "name": "默认路由",
     "to": "https://webhook.site/default-webhook-id",
     "method": "POST",
     "headers": {
