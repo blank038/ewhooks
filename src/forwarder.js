@@ -43,6 +43,7 @@ function selectTarget(config, context) {
       method: config.method,
       headers: config.headers,
       body: config.body,
+      routeName: null,
     };
   }
 
@@ -54,13 +55,15 @@ function selectTarget(config, context) {
    */
   function isMatch(matchPattern, value) {
     // 精确匹配（字符串）
-    if (typeof matchPattern === 'string') {
+    if (typeof matchPattern === "string") {
       // 检查是否为正则表达式格式：/pattern/flags
       const regexMatch = matchPattern.match(/^\/(.+?)\/([gimsuy]*)$/);
+
       if (regexMatch) {
         try {
           const regex = new RegExp(regexMatch[1], regexMatch[2]);
-          return regex.test(value);
+          const result = regex.test(value);
+          return result;
         } catch (error) {
           logger.logError(`无效的正则表达式: ${matchPattern}`, error);
           return false;
@@ -69,14 +72,18 @@ function selectTarget(config, context) {
       // 普通字符串精确匹配
       return matchPattern === value;
     }
-    
+
     // 正则表达式对象格式：{"regex": "pattern", "flags": "i"}
-    if (typeof matchPattern === 'object' && matchPattern.regex) {
+    if (typeof matchPattern === "object" && matchPattern.regex) {
       try {
-        const regex = new RegExp(matchPattern.regex, matchPattern.flags || '');
-        return regex.test(value);
+        const regex = new RegExp(matchPattern.regex, matchPattern.flags || "");
+        const result = regex.test(value);
+        return result;
       } catch (error) {
-        logger.logError(`无效的正则表达式对象: ${JSON.stringify(matchPattern)}`, error);
+        logger.logError(
+          `无效的正则表达式对象: ${JSON.stringify(matchPattern)}`,
+          error,
+        );
         return false;
       }
     }
@@ -86,7 +93,8 @@ function selectTarget(config, context) {
   }
 
   // 遍历路由规则
-  for (const route of config.routes) {
+  for (let i = 0; i < config.routes.length; i++) {
+    const route = config.routes[i];
     let matched = false;
 
     // 新格式：使用 conditions 数组进行多条件匹配
@@ -103,26 +111,25 @@ function selectTarget(config, context) {
         }
 
         // 解析字段值
-        const fieldValue = resolveAllVariables(`{{${condition.field}}}`, context);
-        
+        const fieldValue = resolveAllVariables(
+          `{{${condition.field}}}`,
+          context,
+        );
+
         // 判断是否匹配
         const matchResult = isMatch(condition.match, fieldValue);
         results.push(matchResult);
-
-        logger.logInfo(`条件匹配: ${condition.field}=${fieldValue} 匹配 ${condition.match} => ${matchResult}`);
       }
 
       // 根据 operator 计算最终结果
       if (operator === "AND") {
-        matched = results.every(r => r === true);
+        matched = results.every((r) => r === true);
       } else if (operator === "OR") {
-        matched = results.some(r => r === true);
+        matched = results.some((r) => r === true);
       } else {
         logger.logError(`不支持的操作符: ${operator}`);
         matched = false;
       }
-
-      logger.logInfo(`条件组合结果 (${operator}): ${matched}`);
     }
     // 旧格式：使用 routeField + match（向后兼容）
     else if (route.match !== undefined) {
@@ -133,33 +140,33 @@ function selectTarget(config, context) {
 
       // 解析字段值
       const fieldValue = resolveAllVariables(`{{${routeField}}}`, context);
-      
+
       // 判断是否匹配
       matched = isMatch(route.match, fieldValue);
-
-      logger.logInfo(`路由字段匹配: ${routeField}=${fieldValue} 匹配 ${route.match} => ${matched}`);
     }
 
-    // 如果匹配成功，返回该路由
+    // 如果匹配成功,返回该路由
     if (matched) {
-      logger.logInfo(`路由匹配成功 -> ${route.to}`);
+      const routeName = route.name || `路由${i + 1}`;
       return {
         to: route.to,
         method: route.method || config.method,
         headers: route.headers || config.headers,
         body: route.body || config.body,
+        routeName: routeName,
       };
     }
   }
 
   // 使用默认路由
   if (config.default) {
-    logger.logInfo(`使用默认路由 -> ${config.default.to}`);
+    const routeName = config.default.name || "default";
     return {
       to: config.default.to,
       method: config.default.method || config.method,
       headers: config.default.headers || config.headers,
       body: config.default.body || config.body,
+      routeName: routeName,
     };
   }
 
@@ -207,14 +214,21 @@ export async function forwardWebhook(adapterName, req) {
       proxy: false,
     });
 
-    logger.logForwardSuccess(adapterName, target.to, response.status, body, requestId);
-
     return {
       status: response.status,
       data: response.data,
+      requestId: requestId,
+      routeName: target.routeName,
     };
   } catch (error) {
-    logger.logForwardError(adapterName, target.to, error, body, requestId);
+    logger.logForwardError(
+      adapterName,
+      target.to,
+      error,
+      body,
+      requestId,
+      target.routeName,
+    );
 
     if (error.response) {
       let responseData = error.response.data;
@@ -233,6 +247,8 @@ export async function forwardWebhook(adapterName, req) {
       return {
         status: error.response.status,
         data: responseData,
+        requestId: requestId,
+        routeName: target.routeName,
       };
     }
 
@@ -242,6 +258,8 @@ export async function forwardWebhook(adapterName, req) {
         error: "Failed to forward webhook",
         message: error.message,
       },
+      requestId: requestId,
+      routeName: target.routeName,
     };
   }
 }

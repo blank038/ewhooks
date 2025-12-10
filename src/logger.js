@@ -23,7 +23,7 @@ class Logger {
 
   init() {
     if (this.initialized) return;
-    
+
     this.logLevel = this.parseLogLevel(process.env.LOG_LEVEL || "INFO");
     this.bodyLogAdapters = this.parseAdapterList(
       process.env.BODY_LOG_ADAPTERS || "",
@@ -31,7 +31,7 @@ class Logger {
     this.forwardLogAdapters = this.parseAdapterList(
       process.env.FORWARD_LOG_ADAPTERS || "",
     );
-    
+
     this.initialized = true;
   }
 
@@ -54,14 +54,20 @@ class Logger {
 
   shouldLogBody(adapterName) {
     if (!this.initialized) this.init();
-    
-    return this.bodyLogAdapters === null || this.bodyLogAdapters.includes(adapterName);
+
+    return (
+      this.bodyLogAdapters === null ||
+      this.bodyLogAdapters.includes(adapterName)
+    );
   }
 
   shouldLogForward(adapterName) {
     if (!this.initialized) this.init();
-    
-    return this.forwardLogAdapters === null || this.forwardLogAdapters.includes(adapterName);
+
+    return (
+      this.forwardLogAdapters === null ||
+      this.forwardLogAdapters.includes(adapterName)
+    );
   }
 
   formatTimestamp() {
@@ -74,7 +80,7 @@ class Logger {
 
   log(level, message, data = null) {
     if (!this.initialized) this.init();
-    
+
     if (LOG_LEVELS[level] < this.logLevel) {
       return;
     }
@@ -141,10 +147,20 @@ class Logger {
     }
   }
 
-  logForwardSuccess(adapterName, targetUrl, statusCode, forwardedBody = null, requestId = null) {
-    const requestIdStr = requestId ? `[${this.colorize(requestId, "cyan")}] ` : "";
+  logForwardSuccess(
+    adapterName,
+    targetUrl,
+    statusCode,
+    forwardedBody = null,
+    requestId = null,
+    routeName = null,
+  ) {
+    const requestIdStr = requestId
+      ? `[${this.colorize(requestId, "cyan")}] `
+      : "";
+    const routeNameDisplay = routeName || "未命名路由";
     this.info(
-      `${requestIdStr}转发成功: ${this.colorize(adapterName, "magenta")} -> ${this.colorize(targetUrl, "green")} [${this.colorize(statusCode, "green")}]`,
+      `${requestIdStr}转发成功: ${this.colorize(adapterName, "magenta")} -> ${this.colorize(routeNameDisplay, "yellow")} [${this.colorize(statusCode, "green")}]`,
     );
 
     if (this.shouldLogForward(adapterName) && forwardedBody) {
@@ -152,10 +168,20 @@ class Logger {
     }
   }
 
-  logForwardError(adapterName, targetUrl, error, forwardedBody = null, requestId = null) {
-    const requestIdStr = requestId ? `[${this.colorize(requestId, "cyan")}] ` : "";
+  logForwardError(
+    adapterName,
+    targetUrl,
+    error,
+    forwardedBody = null,
+    requestId = null,
+    routeName = null,
+  ) {
+    const requestIdStr = requestId
+      ? `[${this.colorize(requestId, "cyan")}] `
+      : "";
+    const routeNameDisplay = routeName || "未命名路由";
     this.error(
-      `${requestIdStr}转发失败: ${this.colorize(adapterName, "magenta")} -> ${this.colorize(targetUrl, "red")}`,
+      `${requestIdStr}转发失败: ${this.colorize(adapterName, "magenta")} -> ${this.colorize(routeNameDisplay, "yellow")}`,
       { error: error.message },
     );
 

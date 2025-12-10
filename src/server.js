@@ -32,16 +32,15 @@ app.use("/adapter/:name", (req, res, next) => {
 const handleWebhookRequest = async (req, res) => {
   const adapterName = req.params.name;
 
-  logger.logRequest(
-    req.method,
-    `/adapter/${adapterName}`,
-    adapterName,
-    req.body,
-    req.headers,
-  );
-
   try {
     const result = await forwardWebhook(adapterName, req);
+
+    // 输出合并的日志
+    const requestIdStr = result.requestId ? `[${result.requestId}] ` : "";
+    const routeNameDisplay = result.routeName || "default";
+    logger.info(
+      `${requestIdStr}${logger.colorize(req.method, "cyan")} ${logger.colorize(`/adapter/${adapterName}`, "green")} -> ${logger.colorize(routeNameDisplay, "yellow")} [${logger.colorize(result.status, "green")}]`,
+    );
 
     res.status(result.status).json(result.data);
   } catch (error) {
