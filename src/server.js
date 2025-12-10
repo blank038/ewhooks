@@ -42,6 +42,13 @@ const handleWebhookRequest = async (req, res) => {
       `${requestIdStr}${logger.colorize(req.method, "cyan")} ${logger.colorize(`/adapter/${adapterName}`, "green")} -> ${logger.colorize(routeNameDisplay, "yellow")} [${logger.colorize(result.status, "green")}]`,
     );
 
+    // 检查并打印请求载体
+    if (logger.shouldLogBody(adapterName)) {
+      if (req.body && Object.keys(req.body).length > 0) {
+        logger.info(`请求载体 (${adapterName}):`, req.body);
+      }
+    }
+
     res.status(result.status).json(result.data);
   } catch (error) {
     if (error.message === "CONFIG_NOT_FOUND") {

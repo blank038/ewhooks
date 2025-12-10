@@ -214,6 +214,11 @@ export async function forwardWebhook(adapterName, req) {
       proxy: false,
     });
 
+    // 检查并打印转发载体
+    if (logger.shouldLogForward(adapterName)) {
+      logger.info(`转发载体 (${adapterName}):`, body);
+    }
+
     return {
       status: response.status,
       data: response.data,
